@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imap-drafts"
+version = "0.2.0"
+description = "Your agent writes. You send. A safe bridge between AI agents and your inbox: search, read and draft over IMAP, never send."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Cristian Dinca" }]
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["email", "imap", "mcp", "model-context-protocol", "ai-agent", "claude", "drafts"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Communications :: Email",
+]
+
+[project.urls]
+Homepage = "https://github.com/c-dinca/imap-drafts"
+
+[project.scripts]
+imap-drafts = "imap_drafts:main"
+
+[tool.setuptools]
+py-modules = ["imap_drafts"]

@@ -2,7 +2,21 @@ import email
 import email.policy
 import unittest
 
-from imap_drafts import DraftsError, build_draft, decode_mailbox, reply_recipients, reply_subject
+import io
+import json
+
+from imap_drafts import (
+    MCP_TOOLS,
+    DraftsError,
+    build_draft,
+    decode_mailbox,
+    handle_mcp,
+    html_to_text,
+    imap_quote,
+    reply_recipients,
+    reply_subject,
+    serve_mcp,
+)
 
 
 def parse(raw):
@@ -69,6 +83,50 @@ class ReplyRecipientsTest(unittest.TestCase):
     def test_follow_up_on_my_own_message(self):
         original = parse("From: me@example.com\nTo: alice@x.org\n\nhi")
         self.assertEqual(reply_recipients(original, "me@example.com")[0], ["alice@x.org"])
+
+
+class HelpersTest(unittest.TestCase):
+    def test_html_to_text(self):
+        self.assertEqual(html_to_text("<p>Hello&nbsp;<b>you</b></p><style>x{}</style><br>bye"), "Hello you\n\nbye")
+
+    def test_imap_quote(self):
+        self.assertEqual(imap_quote('a"b'), '"a\\"b"')
+        with self.assertRaises(DraftsError):
+            imap_quote("café")
+
+
+class McpTest(unittest.TestCase):
+    config = {"user": "me@example.com"}
+
+    def test_initialize_echoes_a_known_version(self):
+        response = handle_mcp({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05"}}, self.config)
+        self.assertEqual(response["result"]["protocolVersion"], "2024-11-05")
+        self.assertIn("tools", response["result"]["capabilities"])
+
+    def test_unknown_version_gets_the_latest(self):
+        response = handle_mcp({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "1999"}}, self.config)
+        self.assertEqual(response["result"]["protocolVersion"], "2025-06-18")
+
+    def test_tools_never_send(self):
+        names = {tool["name"] for tool in MCP_TOOLS}
+        self.assertEqual(names, {"list_folders", "search_emails", "read_email", "create_draft", "create_reply_draft"})
+        self.assertFalse(any("send" in name or "delete" in name for name in names))
+
+    def test_notification_has_no_answer(self):
+        self.assertIsNone(handle_mcp({"jsonrpc": "2.0", "method": "notifications/initialized"}, self.config))
+
+    def test_unknown_method(self):
+        response = handle_mcp({"jsonrpc": "2.0", "id": 7, "method": "resources/list"}, self.config)
+        self.assertEqual(response["error"]["code"], -32601)
+
+    def test_stdio_lines(self):
+        stdin = io.StringIO('{"jsonrpc":"2.0","id":1,"method":"ping"}\nnot json\n{"jsonrpc":"2.0","method":"notifications/initialized"}\n')
+        stdout = io.StringIO()
+        serve_mcp(self.config, stdin, stdout)
+        lines = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        self.assertEqual(lines[0], {"jsonrpc": "2.0", "id": 1, "result": {}})
+        self.assertEqual(lines[1]["error"]["code"], -32700)
+        self.assertEqual(len(lines), 2)
 
 
 if __name__ == "__main__":
