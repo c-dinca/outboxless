@@ -50,7 +50,7 @@ imap-drafts check
 # OK: logged in as me@example.com, Drafts = Drafts, Sent = Sent
 ```
 
-Common servers: Gmail `imap.gmail.com` (needs an app password), Outlook.com `outlook.office365.com`, OVH MX Plan `ssl0.ovh.net`, iCloud `imap.mail.me.com`, Fastmail `imap.fastmail.com`.
+Common servers: Gmail `imap.gmail.com` (needs an app password), Outlook.com `outlook.office365.com`, OVH MX Plan `ssl0.ovh.net`, OVH Email Pro `pro1.mail.ovh.net`, iCloud `imap.mail.me.com`, Fastmail `imap.fastmail.com`.
 
 ## Use
 

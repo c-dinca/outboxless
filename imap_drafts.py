@@ -9,6 +9,7 @@ Standard library only (Python 3.9+).
 """
 
 import argparse
+import base64
 import configparser
 import email
 import email.policy
@@ -178,6 +179,19 @@ def find_mailbox(imap, special_use, fallbacks):
     raise DraftsError(f"no {special_use} mailbox found among: {', '.join(name for _, name in mailboxes)}")
 
 
+def decode_mailbox(name):
+    """Readable form of a mailbox name sent in IMAP's modified UTF-7 (RFC 3501), e.g. '&AMk-l&AOk-ments' -> 'Éléments'."""
+
+    def decode(match):
+        chunk = match.group(1)
+        if not chunk:
+            return "&"
+        chunk = chunk.replace(",", "/")
+        return base64.b64decode(chunk + "=" * (-len(chunk) % 4)).decode("utf-16-be")
+
+    return re.sub(r"&([^-]*)-", decode, name)
+
+
 def quote_mailbox(name):
     return '"' + name.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
@@ -283,7 +297,7 @@ def main(argv=None):
             drafts = find_mailbox(imap, r"\Drafts", DRAFTS_FALLBACKS)
             if args.command == "check":
                 sent = find_mailbox(imap, r"\Sent", SENT_FALLBACKS)
-                print(f"OK: logged in as {config['user']}, Drafts = {drafts}, Sent = {sent}")
+                print(f"OK: logged in as {config['user']}, Drafts = {decode_mailbox(drafts)}, Sent = {decode_mailbox(sent)}")
                 return 0
 
             body = read_body(args)
@@ -307,7 +321,7 @@ def main(argv=None):
                     signature=signature_of(config, args),
                 )
             append_draft(imap, drafts, message)
-            print(f"Draft saved in {drafts}: \"{message['Subject']}\" to {message['To']}" + (f", cc {message['Cc']}" if message["Cc"] else ""))
+            print(f"Draft saved in {decode_mailbox(drafts)}: \"{message['Subject']}\" to {message['To']}" + (f", cc {message['Cc']}" if message["Cc"] else ""))
             return 0
         finally:
             imap.logout()

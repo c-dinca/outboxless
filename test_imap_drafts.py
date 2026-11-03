@@ -2,11 +2,18 @@ import email
 import email.policy
 import unittest
 
-from imap_drafts import DraftsError, build_draft, reply_recipients, reply_subject
+from imap_drafts import DraftsError, build_draft, decode_mailbox, reply_recipients, reply_subject
 
 
 def parse(raw):
     return email.message_from_string(raw, policy=email.policy.default)
+
+
+class DecodeMailboxTest(unittest.TestCase):
+    def test_modified_utf7(self):
+        self.assertEqual(decode_mailbox("&AMk-l&AOk-ments envoy&AOk-s"), "Éléments envoyés")
+        self.assertEqual(decode_mailbox("Drafts"), "Drafts")
+        self.assertEqual(decode_mailbox("R&-D"), "R&D")
 
 
 class ReplySubjectTest(unittest.TestCase):
