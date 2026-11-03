@@ -5,7 +5,7 @@ import unittest
 import io
 import json
 
-from imap_drafts import (
+from outboxless import (
     MCP_TOOLS,
     DraftsError,
     build_draft,

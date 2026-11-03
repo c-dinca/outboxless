@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Outboxless">
+  <rect width="128" height="128" rx="28" fill="#1F2A44"/>
+  <!-- the draft: an envelope drawn with a dashed line, nothing has left -->
+  <rect x="22" y="36" width="74" height="54" rx="8" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-dasharray="11 7" stroke-linecap="round"/>
+  <path d="M26 42 L59 66 L92 42" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- the agent's pencil, still writing -->
+  <g transform="rotate(45 96 84)">
+    <rect x="88" y="52" width="16" height="44" rx="3" fill="#FF7A45"/>
+    <rect x="88" y="52" width="16" height="8" rx="3" fill="#FFD2BF"/>
+    <path d="M88 96 L104 96 L96 110 Z" fill="#FFE3D6"/>
+    <path d="M93.5 105.5 L98.5 105.5 L96 110 Z" fill="#1F2A44"/>
+  </g>
+</svg>

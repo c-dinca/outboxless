@@ -1,4 +1,11 @@
-# imap-drafts
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/wordmark-dark.svg">
+    <img alt="Outboxless: your agent writes, you send" src="assets/wordmark-light.svg" width="460">
+  </picture>
+</p>
+
+# Outboxless
 
 **Your agent writes. You send.**
 
@@ -15,7 +22,7 @@ The safe bridge between AI agents and your inbox. Claude, Cursor or any [MCP](ht
 ## How it works
 
 ```
- AI agent (Claude, Cursor...) ──MCP──▶ imap-drafts ──IMAP──▶ your mailbox
+ AI agent (Claude, Cursor...) ──MCP──▶ outboxless ──IMAP──▶ your mailbox
                                             │                     │
                               search, read, draft            Drafts folder
                                                                   │
@@ -25,15 +32,15 @@ The safe bridge between AI agents and your inbox. Claude, Cursor or any [MCP](ht
 ## Install
 
 ```sh
-pipx install git+https://github.com/c-dinca/imap-drafts
-# or: uv tool install git+https://github.com/c-dinca/imap-drafts
+pipx install git+https://github.com/c-dinca/outboxless
+# or: uv tool install git+https://github.com/c-dinca/outboxless
 ```
 
-No pipx? Clone the repository and run `python3 imap_drafts.py` instead of `imap-drafts`.
+No pipx? Clone the repository and run `python3 outboxless.py` instead of `outboxless`.
 
 ## Set up your mailbox
 
-1. Create `~/.config/imap-drafts/config.ini`:
+1. Create `~/.config/outboxless/config.ini`:
 
    ```ini
    [account]
@@ -42,22 +49,22 @@ No pipx? Clone the repository and run `python3 imap_drafts.py` instead of `imap-
    user = me@example.com
    from_name = My Name
    ; optional
-   keychain_service = imap-drafts
-   signature_file = ~/.config/imap-drafts/signature.txt
+   keychain_service = outboxless
+   signature_file = ~/.config/outboxless/signature.txt
    ```
 
 2. Store the password in the macOS Keychain (you are prompted, nothing is echoed):
 
    ```sh
-   security add-generic-password -s imap-drafts -a me@example.com -w
+   security add-generic-password -s outboxless -a me@example.com -w
    ```
 
-   On Linux or Windows, set `IMAP_DRAFTS_PASSWORD` in the environment of the process instead. Every setting can also come from `IMAP_DRAFTS_HOST`, `IMAP_DRAFTS_PORT`, `IMAP_DRAFTS_USER` and `IMAP_DRAFTS_FROM_NAME`.
+   On Linux or Windows, set `OUTBOXLESS_PASSWORD` in the environment of the process instead. Every setting can also come from `OUTBOXLESS_HOST`, `OUTBOXLESS_PORT`, `OUTBOXLESS_USER` and `OUTBOXLESS_FROM_NAME`.
 
 3. Check:
 
    ```sh
-   imap-drafts check
+   outboxless check
    # OK: logged in as me@example.com, Drafts = Drafts, Sent = Sent
    ```
 
@@ -75,7 +82,7 @@ No pipx? Clone the repository and run `python3 imap_drafts.py` instead of `imap-
 ### Claude Code
 
 ```sh
-claude mcp add imap-drafts -- imap-drafts mcp
+claude mcp add outboxless -- outboxless mcp
 ```
 
 ### Claude Desktop, Cursor and other MCP clients
@@ -85,7 +92,7 @@ Add to the client's MCP configuration (`claude_desktop_config.json`, `~/.cursor/
 ```json
 {
   "mcpServers": {
-    "imap-drafts": { "command": "imap-drafts", "args": ["mcp"] }
+    "outboxless": { "command": "outboxless", "args": ["mcp"] }
   }
 }
 ```
@@ -114,8 +121,8 @@ Then just ask: *"Find Alice's last email about the budget and draft a reply sayi
 The same features without an agent:
 
 ```sh
-imap-drafts new --to alice@example.org --cc bob@example.org --subject "Weekly update" --body-file update.txt
-imap-drafts reply --from alice@example.org --subject-contains "Weekly update" --body "Thanks, all good on my side."
+outboxless new --to alice@example.org --cc bob@example.org --subject "Weekly update" --body-file update.txt
+outboxless reply --from alice@example.org --subject-contains "Weekly update" --body "Thanks, all good on my side."
 ```
 
 `reply` answers the latest message from that sender whose subject contains the text (inbox or sent folder). `--all` keeps the other recipients in Cc, `--no-signature` leaves the signature out, and the body can come from stdin.

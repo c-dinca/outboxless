@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "imap-drafts"
+name = "outboxless"
 version = "0.2.0"
 description = "Your agent writes. You send. A safe bridge between AI agents and your inbox: search, read and draft over IMAP, never send."
 readme = "README.md"
@@ -20,10 +20,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/c-dinca/imap-drafts"
+Homepage = "https://github.com/c-dinca/outboxless"
 
 [project.scripts]
-imap-drafts = "imap_drafts:main"
+outboxless = "outboxless:main"
 
 [tool.setuptools]
-py-modules = ["imap_drafts"]
+py-modules = ["outboxless"]

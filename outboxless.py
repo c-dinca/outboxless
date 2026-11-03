@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""imap-drafts: your agent writes, you send.
+"""Outboxless: your agent writes, you send.
 
 A safe bridge between AI agents and your inbox. Search and read mail, and put drafts in the
 Drafts folder over IMAP, from the command line or as an MCP server (Claude, Cursor...).
@@ -27,7 +27,7 @@ from email.utils import formatdate, getaddresses, make_msgid, parseaddr
 
 __version__ = "0.2.0"
 
-CONFIG_PATH = os.path.expanduser(os.environ.get("IMAP_DRAFTS_CONFIG", "~/.config/imap-drafts/config.ini"))
+CONFIG_PATH = os.path.expanduser(os.environ.get("OUTBOXLESS_CONFIG", "~/.config/outboxless/config.ini"))
 DRAFTS_FALLBACKS = ["Drafts", "INBOX.Drafts", "INBOX/Drafts", "Brouillons", "INBOX.Brouillons"]
 SENT_FALLBACKS = ["Sent", "INBOX.Sent", "INBOX/Sent", "Sent Messages", "Envoyés", "INBOX.Envoyés"]
 REPLY_PREFIX = re.compile(r"^\s*(re|aw|sv|réf|rif)\s*:\s*", re.IGNORECASE)
@@ -46,23 +46,23 @@ def load_config(path=CONFIG_PATH):
     parser.read(path)
     account = parser["account"] if parser.has_section("account") else {}
     config = {
-        "host": os.environ.get("IMAP_DRAFTS_HOST", account.get("host", "")),
-        "port": int(os.environ.get("IMAP_DRAFTS_PORT", account.get("port", "993"))),
-        "user": os.environ.get("IMAP_DRAFTS_USER", account.get("user", "")),
-        "from_name": os.environ.get("IMAP_DRAFTS_FROM_NAME", account.get("from_name", "")),
-        "keychain_service": account.get("keychain_service", "imap-drafts"),
+        "host": os.environ.get("OUTBOXLESS_HOST", account.get("host", "")),
+        "port": int(os.environ.get("OUTBOXLESS_PORT", account.get("port", "993"))),
+        "user": os.environ.get("OUTBOXLESS_USER", account.get("user", "")),
+        "from_name": os.environ.get("OUTBOXLESS_FROM_NAME", account.get("from_name", "")),
+        "keychain_service": account.get("keychain_service", "outboxless"),
         "signature_file": os.path.expanduser(account.get("signature_file", "")),
     }
     missing = [key for key in ("host", "user") if not config[key]]
     if missing:
-        raise DraftsError(f"missing {', '.join(missing)}: set them in {path} (see README) or in IMAP_DRAFTS_* variables")
+        raise DraftsError(f"missing {', '.join(missing)}: set them in {path} (see README) or in OUTBOXLESS_* variables")
     return config
 
 
 def get_password(config):
-    """From IMAP_DRAFTS_PASSWORD, else from the macOS Keychain. Never printed."""
-    if os.environ.get("IMAP_DRAFTS_PASSWORD"):
-        return os.environ["IMAP_DRAFTS_PASSWORD"]
+    """From OUTBOXLESS_PASSWORD, else from the macOS Keychain. Never printed."""
+    if os.environ.get("OUTBOXLESS_PASSWORD"):
+        return os.environ["OUTBOXLESS_PASSWORD"]
     try:
         result = subprocess.run(
             ["security", "find-generic-password", "-s", config["keychain_service"], "-a", config["user"], "-w"],
@@ -71,7 +71,7 @@ def get_password(config):
             check=True,
         )
     except FileNotFoundError:
-        raise DraftsError("no IMAP_DRAFTS_PASSWORD and no macOS Keychain (`security` not found)") from None
+        raise DraftsError("no OUTBOXLESS_PASSWORD and no macOS Keychain (`security` not found)") from None
     except subprocess.CalledProcessError:
         raise DraftsError(
             f"no password in the Keychain for service '{config['keychain_service']}' and account '{config['user']}'"
@@ -560,7 +560,7 @@ def handle_mcp(request, config):
             {
                 "protocolVersion": asked if asked in MCP_PROTOCOL_VERSIONS else MCP_PROTOCOL_VERSIONS[0],
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "imap-drafts", "version": __version__},
+                "serverInfo": {"name": "outboxless", "version": __version__},
                 "instructions": "Search and read the user's mail, and write drafts. Nothing is ever sent: the user "
                 "reviews every draft in their own mail app. " + UNTRUSTED_NOTE,
             }
@@ -620,7 +620,7 @@ def sender_of(config):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        prog="imap-drafts", description="Your agent writes. You send. Drafts in your IMAP mailbox, never sent."
+        prog="outboxless", description="Your agent writes. You send. Drafts in your IMAP mailbox, never sent."
     )
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -678,7 +678,7 @@ def main(argv=None):
         finally:
             imap.logout()
     except DraftsError as err:
-        print(f"imap-drafts: {err}", file=sys.stderr)
+        print(f"outboxless: {err}", file=sys.stderr)
         return 1
 
 
