@@ -16,6 +16,7 @@ import email
 import email.policy
 import imaplib
 import json
+import mimetypes
 import os
 import re
 import subprocess
@@ -100,6 +101,7 @@ def build_draft(
     references=None,
     signature=None,
     now=None,
+    attachments=(),
 ):
     """A plain-text UTF-8 message, ready to be appended to the Drafts folder."""
     if not to:
@@ -122,7 +124,16 @@ def build_draft(
     if signature:
         text += "\n" + signature.rstrip() + "\n"
     message.set_content(text, charset="utf-8")
+    for path in attachments:
+        add_attachment(message, path)
     return message
+
+
+def add_attachment(message, path):
+    kind, _ = mimetypes.guess_type(path)
+    maintype, subtype = (kind or "application/octet-stream").split("/", 1)
+    with open(os.path.expanduser(path), "rb") as handle:
+        message.add_attachment(handle.read(), maintype=maintype, subtype=subtype, filename=os.path.basename(path))
 
 
 def reply_recipients(original, me, reply_all=False):
@@ -379,14 +390,18 @@ def load_signature(config, enabled=True):
         return handle.read()
 
 
-def save_draft(imap, config, to, subject, body, cc=(), bcc=(), signature=True):
-    message = build_draft(sender_of(config), to, subject, body, cc, bcc, signature=load_signature(config, signature))
+def save_draft(imap, config, to, subject, body, cc=(), bcc=(), signature=True, attachments=()):
+    message = build_draft(
+        sender_of(config), to, subject, body, cc, bcc, signature=load_signature(config, signature), attachments=attachments
+    )
     drafts = find_mailbox(imap, r"\Drafts", DRAFTS_FALLBACKS)
     append_draft(imap, drafts, message)
     return drafts, message
 
 
-def save_reply_draft(imap, config, original, body, reply_all=False, subject=None, cc=(), bcc=(), signature=True):
+def save_reply_draft(
+    imap, config, original, body, reply_all=False, subject=None, cc=(), bcc=(), signature=True, attachments=()
+):
     to, reply_cc = reply_recipients(original, config["user"], reply_all)
     message = build_draft(
         sender_of(config),
@@ -398,6 +413,7 @@ def save_reply_draft(imap, config, original, body, reply_all=False, subject=None
         in_reply_to=original.get("Message-ID"),
         references=original.get("References"),
         signature=load_signature(config, signature),
+        attachments=attachments,
     )
     drafts = find_mailbox(imap, r"\Drafts", DRAFTS_FALLBACKS)
     append_draft(imap, drafts, message)
@@ -406,6 +422,8 @@ def save_reply_draft(imap, config, original, body, reply_all=False, subject=None
 
 def draft_summary(drafts, message):
     cc = f", cc {message['Cc']}" if message["Cc"] else ""
+    files = [part.get_filename() for part in message.iter_attachments()]
+    cc += f", attached: {', '.join(files)}" if files else ""
     return f"Draft saved in {decode_mailbox(drafts)}: \"{message['Subject']}\" to {message['To']}{cc}"
 
 
@@ -631,6 +649,7 @@ def main(argv=None):
         command.add_argument("--cc", action="append", default=[], help="Cc address (repeat for several)")
         command.add_argument("--bcc", action="append", default=[], help="Bcc address (repeat for several)")
         command.add_argument("--no-signature", action="store_true", help="leave the configured signature out")
+        command.add_argument("--attach", action="append", default=[], help="file to attach (repeat for several)")
 
     new = commands.add_parser("new", help="a new draft")
     new.add_argument("--to", action="append", required=True, help="recipient (repeat for several)")
@@ -665,13 +684,14 @@ def main(argv=None):
             body = read_body(args)
             if args.command == "new":
                 drafts, message = save_draft(
-                    imap, config, args.to, args.subject, body, args.cc, args.bcc, not args.no_signature
+                    imap, config, args.to, args.subject, body, args.cc, args.bcc, not args.no_signature, args.attach
                 )
             else:
                 folders = ["INBOX", find_mailbox(imap, r"\Sent", SENT_FALLBACKS)]
                 original = find_original(imap, args.sender, args.subject_contains, args.days, folders)
                 drafts, message = save_reply_draft(
-                    imap, config, original, body, args.all, args.subject, args.cc, args.bcc, not args.no_signature
+                    imap, config, original, body, args.all, args.subject, args.cc, args.bcc, not args.no_signature,
+                    args.attach,
                 )
             print(draft_summary(drafts, message))
             return 0

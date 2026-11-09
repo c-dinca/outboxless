@@ -60,6 +60,19 @@ class BuildDraftTest(unittest.TestCase):
         self.assertEqual(message["Cc"], "b@x.org")
         self.assertIn("body\n\n-- \nMe", message.get_content())
 
+    def test_attachment(self):
+        import os, tempfile
+        with tempfile.NamedTemporaryFile("wb", suffix=".png", delete=False) as handle:
+            handle.write(b"\x89PNG fake")
+        try:
+            message = build_draft("me@example.com", ["a@x.org"], "s", "body", attachments=[handle.name])
+            [part] = list(message.iter_attachments())
+            self.assertEqual(part.get_content_type(), "image/png")
+            self.assertEqual(part.get_filename(), os.path.basename(handle.name))
+            self.assertIn("body", message.get_body(("plain",)).get_content())
+        finally:
+            os.unlink(handle.name)
+
     def test_needs_a_recipient(self):
         with self.assertRaises(DraftsError):
             build_draft("me@example.com", [], "s", "body")
