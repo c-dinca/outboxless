@@ -13,6 +13,7 @@ import argparse
 import base64
 import configparser
 import email
+import html as htmllib
 import email.policy
 import imaplib
 import json
@@ -103,7 +104,10 @@ def build_draft(
     now=None,
     attachments=(),
 ):
-    """A plain-text UTF-8 message, ready to be appended to the Drafts folder."""
+    """A UTF-8 message (plain text + the same text as HTML), ready to be appended to the Drafts folder.
+
+    The HTML part keeps line breaks when a mail app (e.g. Spark) edits the draft:
+    with plain text only, Spark rebuilds HTML without <br> and the text becomes one paragraph."""
     if not to:
         raise DraftsError("a draft needs at least one recipient")
     message = EmailMessage(policy=email.policy.SMTP)
@@ -124,9 +128,17 @@ def build_draft(
     if signature:
         text += "\n" + signature.rstrip() + "\n"
     message.set_content(text, charset="utf-8")
+    message.add_alternative(text_to_html(text), subtype="html", charset="utf-8")
     for path in attachments:
         add_attachment(message, path)
     return message
+
+
+def text_to_html(text):
+    """One <div> per line, <div><br></div> for blank lines (what Apple Mail and Spark write themselves)."""
+    lines = text.rstrip("\n").split("\n")
+    body = "".join(f"<div>{htmllib.escape(line) or '<br>'}</div>\n" for line in lines)
+    return f'<html><head><meta charset="utf-8"></head><body>\n{body}</body></html>\n'
 
 
 def add_attachment(message, path):

@@ -44,7 +44,7 @@ class BuildDraftTest(unittest.TestCase):
         message = build_draft("Me <me@example.com>", ["you@example.org"], "Café", "Ça va ?", now=0)
         parsed = email.message_from_bytes(message.as_bytes(), policy=email.policy.default)
         self.assertEqual(parsed["Subject"], "Café")
-        self.assertEqual(parsed.get_content().strip(), "Ça va ?")
+        self.assertEqual(parsed.get_body(("plain",)).get_content().strip(), "Ça va ?")
         self.assertTrue(parsed["Message-ID"].endswith("@example.com>"))
         self.assertIsNone(parsed["In-Reply-To"])
 
@@ -58,7 +58,7 @@ class BuildDraftTest(unittest.TestCase):
     def test_signature_and_cc(self):
         message = build_draft("me@example.com", ["a@x.org"], "s", "body", cc=["b@x.org"], signature="-- \nMe")
         self.assertEqual(message["Cc"], "b@x.org")
-        self.assertIn("body\n\n-- \nMe", message.get_content())
+        self.assertIn("body\n\n-- \nMe", message.get_body(("plain",)).get_content())
 
     def test_attachment(self):
         import os, tempfile
@@ -72,6 +72,13 @@ class BuildDraftTest(unittest.TestCase):
             self.assertIn("body", message.get_body(("plain",)).get_content())
         finally:
             os.unlink(handle.name)
+
+    def test_html_part_keeps_line_breaks(self):
+        message = build_draft("me@example.com", ["a@x.org"], "s", "Bonjour,\n\n1. a < b\n2. c")
+        parsed = email.message_from_bytes(message.as_bytes(), policy=email.policy.default)
+        self.assertEqual(parsed.get_content_type(), "multipart/alternative")
+        html = parsed.get_body(("html",)).get_content().replace("\r\n", "\n")
+        self.assertIn("<div>Bonjour,</div>\n<div><br></div>\n<div>1. a &lt; b</div>\n<div>2. c</div>", html)
 
     def test_needs_a_recipient(self):
         with self.assertRaises(DraftsError):
